@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AbsensiController extends Controller
 {
@@ -25,32 +24,33 @@ class AbsensiController extends Controller
                 'jadwals.jam_mulai',
                 'jadwals.jam_selesai'
             );
-        
-        if ($request->has('search')) {
+
+        if ($request->has('search') && $request->search != '') {
             $query->where('mahasiswas.nama_mahasiswa', 'like', '%' . $request->search . '%')
-                  ->orWhere('mahasiswas.nim', 'like', '%' . $request->search . '%');
+                ->orWhere('mahasiswas.nim', 'like', '%' . $request->search . '%');
         }
-        
+
         if ($request->has('tanggal') && $request->tanggal != '') {
             $query->where('absensis.tanggal', $request->tanggal);
         }
-        
+
         $absensis = $query->orderBy('absensis.tanggal', 'desc')
-                         ->orderBy('absensis.created_at', 'desc')
-                         ->paginate(10);
-        
+            ->orderBy('absensis.created_at', 'desc')
+            ->paginate(10);
+
         return view('absensi.index', compact('absensis'));
     }
 
     public function create()
     {
+        $mahasiswas = DB::table('mahasiswas')->get();
         $jadwals = DB::table('jadwals')
             ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
             ->join('dosens', 'jadwals.dosen_id', '=', 'dosens.id')
             ->select('jadwals.*', 'matakuliahs.nama_mk', 'dosens.nama_dosen')
             ->get();
-            
-        return view('absensi.create', compact('jadwals'));
+
+        return view('absensi.create', compact('jadwals', 'mahasiswas'));
     }
 
     public function store(Request $request)
@@ -65,14 +65,14 @@ class AbsensiController extends Controller
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-        
+
         // Check if already absen today
         $existing = DB::table('absensis')
             ->where('mahasiswa_id', $request->mahasiswa_id)
             ->where('jadwal_id', $request->jadwal_id)
             ->where('tanggal', $request->tanggal)
             ->exists();
-            
+
         if ($existing) {
             return redirect()->back()->with('error', 'Mahasiswa sudah melakukan absensi untuk jadwal ini hari ini!');
         }
@@ -89,12 +89,23 @@ class AbsensiController extends Controller
 
         return redirect()->route('absensi.index')->with('success', 'Absensi berhasil ditambahkan');
     }
-    
+
     public function qrScan()
     {
-        return view('absensi.scan');
+        $jadwals = DB::table('jadwals')
+            ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
+            ->join('dosens', 'jadwals.dosen_id', '=', 'dosens.id')
+            ->select('jadwals.*', 'matakuliahs.nama_mk', 'dosens.nama_dosen')
+            ->get();
+
+        // Jika tidak ada jadwal, tampilkan pesan
+        if ($jadwals->isEmpty()) {
+            return redirect()->back()->with('warning', 'Belum ada jadwal yang tersedia. Silakan buat jadwal terlebih dahulu.');
+        }
+
+        return view('absensi.scan', compact('jadwals'));
     }
-    
+
     public function generateQR($jadwal_id)
     {
         $jadwal = DB::table('jadwals')
@@ -102,90 +113,80 @@ class AbsensiController extends Controller
             ->where('jadwals.id', $jadwal_id)
             ->select('jadwals.*', 'matakuliahs.nama_mk')
             ->first();
-            
+
         if (!$jadwal) {
-            abort(404);
+            abort(404, 'Jadwal tidak ditemukan');
         }
-        
-        // Generate unique token for this attendance session
-        $token = base64_encode(json_encode([
-            'jadwal_id' => $jadwal_id,
-            'tanggal' => now()->format('Y-m-d'),
-            'expires' => now()->addMinutes(15)->timestamp
-        ]));
-        
-        $qrCode = QrCode::size(300)->generate(url("/absensi/verify/{$token}"));
-        
-        return view('absensi.qr-code', compact('qrCode', 'jadwal'));
+
+        return view('absensi.qr-code', compact('jadwal'));
     }
-    
-    public function verifyQR($token)
+
+    public function verifyQR(Request $request)
     {
-        try {
-            $data = json_decode(base64_decode($token), true);
-            
-            // Check expiration
-            if ($data['expires'] < now()->timestamp) {
-                return view('absensi.verify-result', ['success' => false, 'message' => 'QR Code sudah kadaluarsa!']);
-            }
-            
-            $jadwal = DB::table('jadwals')
-                ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
-                ->where('jadwals.id', $data['jadwal_id'])
-                ->select('jadwals.*', 'matakuliahs.nama_mk')
-                ->first();
-                
-            return view('absensi.verify-form', compact('token', 'jadwal'));
-            
-        } catch (\Exception $e) {
-            return view('absensi.verify-result', ['success' => false, 'message' => 'QR Code tidak valid!']);
+        $jadwal_id = $request->jadwal_id;
+
+        $jadwal = DB::table('jadwals')
+            ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
+            ->where('jadwals.id', $jadwal_id)
+            ->select('jadwals.*', 'matakuliahs.nama_mk')
+            ->first();
+
+        if (!$jadwal) {
+            return response()->json(['success' => false, 'message' => 'Jadwal tidak ditemukan!']);
         }
+
+        return view('absensi.verify-form', compact('jadwal'));
     }
-    
+
     public function processQR(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'nim' => 'required|exists:mahasiswas,nim',
-            'token' => 'required',
+            'jadwal_id' => 'required|exists:jadwals,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['success' => false, 'message' => 'NIM tidak ditemukan!']);
         }
-        
-        $data = json_decode(base64_decode($request->token), true);
-        
-        // Check expiration again
-        if ($data['expires'] < now()->timestamp) {
-            return response()->json(['success' => false, 'message' => 'QR Code sudah kadaluarsa!']);
-        }
-        
+
         $mahasiswa = DB::table('mahasiswas')->where('nim', $request->nim)->first();
-        
+
         // Check if already absen today
         $existing = DB::table('absensis')
             ->where('mahasiswa_id', $mahasiswa->id)
-            ->where('jadwal_id', $data['jadwal_id'])
+            ->where('jadwal_id', $request->jadwal_id)
             ->where('tanggal', now()->format('Y-m-d'))
             ->exists();
-            
+
         if ($existing) {
             return response()->json(['success' => false, 'message' => 'Anda sudah melakukan absensi hari ini!']);
         }
-        
+
+        // Check if student is enrolled in this jadwal
+        $isEnrolled = DB::table('k_r_s')
+            ->where('mahasiswa_id', $mahasiswa->id)
+            ->where('jadwal_id', $request->jadwal_id)
+            ->where('status', 'approved')
+            ->exists();
+
+        if (!$isEnrolled) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak terdaftar di jadwal ini!']);
+        }
+
         // Save attendance
         DB::table('absensis')->insert([
             'mahasiswa_id' => $mahasiswa->id,
-            'jadwal_id' => $data['jadwal_id'],
+            'jadwal_id' => $request->jadwal_id,
             'tanggal' => now()->format('Y-m-d'),
             'status' => 'hadir',
+            'keterangan' => 'Absensi via QR Code',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         return response()->json(['success' => true, 'message' => 'Absensi berhasil!']);
     }
-    
+
     public function laporan(Request $request)
     {
         $query = DB::table('absensis')
@@ -198,21 +199,21 @@ class AbsensiController extends Controller
                 'mahasiswas.nama_mahasiswa',
                 'matakuliahs.nama_mk'
             );
-        
+
         if ($request->has('start_date') && $request->start_date != '') {
             $query->where('absensis.tanggal', '>=', $request->start_date);
         }
-        
+
         if ($request->has('end_date') && $request->end_date != '') {
             $query->where('absensis.tanggal', '<=', $request->end_date);
         }
-        
+
         if ($request->has('matakuliah_id') && $request->matakuliah_id != '') {
             $query->where('jadwals.matakuliah_id', $request->matakuliah_id);
         }
-        
+
         $absensis = $query->orderBy('absensis.tanggal', 'desc')->get();
-        
+
         // Calculate statistics
         $statistik = [
             'total' => $absensis->count(),
@@ -221,12 +222,12 @@ class AbsensiController extends Controller
             'sakit' => $absensis->where('status', 'sakit')->count(),
             'alpha' => $absensis->where('status', 'alpha')->count(),
         ];
-        
+
         $matakuliahs = DB::table('matakuliahs')->get();
-        
+
         return view('absensi.laporan', compact('absensis', 'statistik', 'matakuliahs'));
     }
-    
+
     public function rekapitulasi($jadwal_id)
     {
         $jadwal = DB::table('jadwals')
@@ -235,7 +236,11 @@ class AbsensiController extends Controller
             ->where('jadwals.id', $jadwal_id)
             ->select('jadwals.*', 'matakuliahs.nama_mk', 'dosens.nama_dosen')
             ->first();
-            
+
+        if (!$jadwal) {
+            abort(404, 'Jadwal tidak ditemukan');
+        }
+
         // Get all students enrolled in this jadwal
         $mahasiswas = DB::table('k_r_s')
             ->join('mahasiswas', 'k_r_s.mahasiswa_id', '=', 'mahasiswas.id')
@@ -243,7 +248,7 @@ class AbsensiController extends Controller
             ->where('k_r_s.status', 'approved')
             ->select('mahasiswas.*')
             ->get();
-            
+
         // Get attendance data
         foreach ($mahasiswas as $mhs) {
             $mhs->hadir = DB::table('absensis')
@@ -251,29 +256,29 @@ class AbsensiController extends Controller
                 ->where('jadwal_id', $jadwal_id)
                 ->where('status', 'hadir')
                 ->count();
-                
+
             $mhs->izin = DB::table('absensis')
                 ->where('mahasiswa_id', $mhs->id)
                 ->where('jadwal_id', $jadwal_id)
                 ->where('status', 'izin')
                 ->count();
-                
+
             $mhs->sakit = DB::table('absensis')
                 ->where('mahasiswa_id', $mhs->id)
                 ->where('jadwal_id', $jadwal_id)
                 ->where('status', 'sakit')
                 ->count();
-                
+
             $mhs->alpha = DB::table('absensis')
                 ->where('mahasiswa_id', $mhs->id)
                 ->where('jadwal_id', $jadwal_id)
                 ->where('status', 'alpha')
                 ->count();
-                
+
             $mhs->total_pertemuan = $mhs->hadir + $mhs->izin + $mhs->sakit + $mhs->alpha;
             $mhs->persentase = $mhs->total_pertemuan > 0 ? round(($mhs->hadir / $mhs->total_pertemuan) * 100, 2) : 0;
         }
-        
+
         return view('absensi.rekapitulasi', compact('jadwal', 'mahasiswas'));
     }
 
@@ -287,8 +292,10 @@ class AbsensiController extends Controller
             ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
             ->select('jadwals.*', 'matakuliahs.nama_mk')
             ->get();
-            
-        return view('absensi.edit', compact('absensi', 'jadwals'));
+
+        $mahasiswas = DB::table('mahasiswas')->get();
+
+        return view('absensi.edit', compact('absensi', 'jadwals', 'mahasiswas'));
     }
 
     public function update(Request $request, $id)
