@@ -31,6 +31,7 @@ class MahasiswaController extends Controller
 
     public function store(Request $request)
     {
+        // Validasi input
         $validator = Validator::make($request->all(), [
             'nim' => 'required|unique:mahasiswas|max:20',
             'nama_mahasiswa' => 'required|max:100',
@@ -40,9 +41,12 @@ class MahasiswaController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
+        // Simpan data
         DB::table('mahasiswas')->insert([
             'nim' => $request->nim,
             'nama_mahasiswa' => $request->nama_mahasiswa,
@@ -54,7 +58,8 @@ class MahasiswaController extends Controller
             'updated_at' => now(),
         ]);
 
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa berhasil ditambahkan');
+        // Redirect ke halaman index dengan pesan sukses
+        return redirect('/mahasiswa')->with('success', 'Mahasiswa berhasil ditambahkan');
     }
 
     public function show($id)
@@ -65,7 +70,9 @@ class MahasiswaController extends Controller
             ->select('mahasiswas.*', 'jurusans.nama_jurusan')
             ->first();
         
-        if (!$mahasiswa) abort(404);
+        if (!$mahasiswa) {
+            abort(404);
+        }
         
         $krs = DB::table('k_r_s')
             ->join('jadwals', 'k_r_s.jadwal_id', '=', 'jadwals.id')
@@ -80,7 +87,9 @@ class MahasiswaController extends Controller
     public function edit($id)
     {
         $mahasiswa = DB::table('mahasiswas')->where('id', $id)->first();
-        if (!$mahasiswa) abort(404);
+        if (!$mahasiswa) {
+            abort(404);
+        }
         $jurusans = DB::table('jurusans')->get();
         return view('mahasiswa.edit', compact('mahasiswa', 'jurusans'));
     }
@@ -96,7 +105,9 @@ class MahasiswaController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
         DB::table('mahasiswas')->where('id', $id)->update([
@@ -109,12 +120,12 @@ class MahasiswaController extends Controller
             'updated_at' => now(),
         ]);
 
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa berhasil diupdate');
+        return redirect('/mahasiswa')->with('success', 'Mahasiswa berhasil diupdate');
     }
 
     public function destroy($id)
     {
         DB::table('mahasiswas')->where('id', $id)->delete();
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa berhasil dihapus');
+        return redirect('/mahasiswa')->with('success', 'Mahasiswa berhasil dihapus');
     }
 }
