@@ -6,34 +6,31 @@
 <div class="bg-white rounded-lg shadow">
     <div class="p-6 border-b flex justify-between items-center">
         <h1 class="text-2xl font-bold">Data Mahasiswa</h1>
-        <a href="{{ route('mahasiswa.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+        <a href="{{ route('mahasiswa.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
             <i class="fas fa-plus mr-2"></i>Tambah Mahasiswa
         </a>
     </div>
     
     <div class="p-6">
-        <!-- Search -->
         <form method="GET" class="mb-4 flex gap-2">
             <input type="text" name="search" placeholder="Cari nama atau NIM..." 
-                   class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
-                   value="{{ request('search') }}">
-            <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition">
+                   class="flex-1 border rounded-lg px-4 py-2" value="{{ request('search') }}">
+            <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
                 <i class="fas fa-search mr-2"></i>Cari
             </button>
         </form>
         
-        <!-- Table -->
         <div class="overflow-x-auto">
             <table class="min-w-full">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIM</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jurusan</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Angkatan</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                        <th class="px-6 py-3 text-left">No</th>
+                        <th class="px-6 py-3 text-left">NIM</th>
+                        <th class="px-6 py-3 text-left">Nama Mahasiswa</th>
+                        <th class="px-6 py-3 text-left">Jurusan</th>
+                        <th class="px-6 py-3 text-left">Angkatan</th>
+                        <th class="px-6 py-3 text-left">Email</th>
+                        <th class="px-6 py-3 text-left">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y">
@@ -41,7 +38,7 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4">{{ $loop->iteration + ($mahasiswas->currentPage() - 1) * $mahasiswas->perPage() }}</td>
                         <td class="px-6 py-4">{{ $mhs->nim }}</td>
-                        <td class="px-6 py-4 font-medium">{{ $mhs->nama_mahasiswa }}</td>
+                        <td class="px-6 py-4">{{ $mhs->nama_mahasiswa }}</td>
                         <td class="px-6 py-4">{{ $mhs->nama_jurusan }}</td>
                         <td class="px-6 py-4">{{ $mhs->angkatan }}</td>
                         <td class="px-6 py-4">{{ $mhs->email }}</td>
