@@ -12,19 +12,16 @@ class JurusanController extends Controller
     {
         $query = DB::table('jurusans');
         
-        if ($request->has('search')) {
+        if ($request->has('search') && $request->search != '') {
             $query->where('nama_jurusan', 'like', '%' . $request->search . '%')
                   ->orWhere('kode_jurusan', 'like', '%' . $request->search . '%');
         }
         
         $jurusans = $query->orderBy('id', 'desc')->paginate(10);
         
-        // Get jumlah mahasiswa per jurusan
         foreach ($jurusans as $jurusan) {
-            $jurusan->total_mahasiswa = DB::table('mahasiswas')
-                ->where('jurusan_id', $jurusan->id)->count();
-            $jurusan->total_matakuliah = DB::table('matakuliahs')
-                ->where('jurusan_id', $jurusan->id)->count();
+            $jurusan->total_mahasiswa = DB::table('mahasiswas')->where('jurusan_id', $jurusan->id)->count();
+            $jurusan->total_matakuliah = DB::table('matakuliahs')->where('jurusan_id', $jurusan->id)->count();
         }
         
         return view('jurusan.index', compact('jurusans'));
@@ -40,7 +37,6 @@ class JurusanController extends Controller
         $validator = Validator::make($request->all(), [
             'kode_jurusan' => 'required|unique:jurusans|max:10',
             'nama_jurusan' => 'required|max:100',
-            'deskripsi' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -55,25 +51,24 @@ class JurusanController extends Controller
             'updated_at' => now(),
         ]);
 
+        // Ganti dari route('admin.jurusan.index') menjadi route('jurusan.index')
         return redirect()->route('jurusan.index')->with('success', 'Jurusan berhasil ditambahkan');
     }
 
     public function show($id)
     {
         $jurusan = DB::table('jurusans')->where('id', $id)->first();
-        if (!$jurusan) {
-            abort(404);
-        }
+        if (!$jurusan) abort(404);
         
         $mahasiswas = DB::table('mahasiswas')
             ->where('jurusan_id', $id)
             ->limit(10)
             ->get();
-            
+        
         $matakuliahs = DB::table('matakuliahs')
             ->where('jurusan_id', $id)
             ->get();
-            
+        
         $statistik = [
             'total_mahasiswa' => DB::table('mahasiswas')->where('jurusan_id', $id)->count(),
             'total_matakuliah' => DB::table('matakuliahs')->where('jurusan_id', $id)->count(),
@@ -90,9 +85,7 @@ class JurusanController extends Controller
     public function edit($id)
     {
         $jurusan = DB::table('jurusans')->where('id', $id)->first();
-        if (!$jurusan) {
-            abort(404);
-        }
+        if (!$jurusan) abort(404);
         return view('jurusan.edit', compact('jurusan'));
     }
 
@@ -114,12 +107,12 @@ class JurusanController extends Controller
             'updated_at' => now(),
         ]);
 
+        // Ganti dari route('admin.jurusan.index') menjadi route('jurusan.index')
         return redirect()->route('jurusan.index')->with('success', 'Jurusan berhasil diupdate');
     }
 
     public function destroy($id)
     {
-        // Check if jurusan has related data
         $mahasiswaCount = DB::table('mahasiswas')->where('jurusan_id', $id)->count();
         $matakuliahCount = DB::table('matakuliahs')->where('jurusan_id', $id)->count();
         
@@ -128,6 +121,8 @@ class JurusanController extends Controller
         }
         
         DB::table('jurusans')->where('id', $id)->delete();
+        
+        // Ganti dari route('admin.jurusan.index') menjadi route('jurusan.index')
         return redirect()->route('jurusan.index')->with('success', 'Jurusan berhasil dihapus');
     }
 }

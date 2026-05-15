@@ -18,44 +18,40 @@
     
     <div class="p-6">
         <div class="grid md:grid-cols-2 gap-6 mb-6">
-            <div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h3 class="font-semibold text-gray-700 mb-2">Informasi Jurusan</h3>
-                    <table class="w-full">
-                        <tr>
-                            <td class="py-2 text-gray-600 w-32">Kode Jurusan</td>
-                            <td class="py-2">: {{ $jurusan->kode_jurusan }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 text-gray-600">Nama Jurusan</td>
-                            <td class="py-2">: {{ $jurusan->nama_jurusan }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 text-gray-600">Deskripsi</td>
-                            <td class="py-2">: {{ $jurusan->deskripsi ?? '-' }}</td>
-                        </tr>
-                    </table>
-                </div>
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h3 class="font-semibold text-gray-700 mb-2">Informasi Jurusan</h3>
+                <table class="w-full">
+                    <tr>
+                        <td class="py-2 text-gray-600 w-32">Kode Jurusan</td>
+                        <td class="py-2">: {{ $jurusan->kode_jurusan }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Nama Jurusan</td>
+                        <td class="py-2">: {{ $jurusan->nama_jurusan }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Deskripsi</td>
+                        <td class="py-2">: {{ $jurusan->deskripsi ?? '-' }}</td>
+                    </tr>
+                </table>
             </div>
             
-            <div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h3 class="font-semibold text-gray-700 mb-2">Statistik</h3>
-                    <table class="w-full">
-                        <tr>
-                            <td class="py-2 text-gray-600 w-32">Total Mahasiswa</td>
-                            <td class="py-2">: {{ $statistik['total_mahasiswa'] ?? 0 }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 text-gray-600">Total Mata Kuliah</td>
-                            <td class="py-2">: {{ $statistik['total_matakuliah'] ?? 0 }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 text-gray-600">Total Dosen</td>
-                            <td class="py-2">: {{ $statistik['total_dosen'] ?? 0 }}</td>
-                        </tr>
-                    </table>
-                </div>
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h3 class="font-semibold text-gray-700 mb-2">Statistik</h3>
+                <table class="w-full">
+                    <tr>
+                        <td class="py-2 text-gray-600 w-32">Total Mahasiswa</td>
+                        <td class="py-2">: {{ $statistik['total_mahasiswa'] ?? 0 }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Total Mata Kuliah</td>
+                        <td class="py-2">: {{ $statistik['total_matakuliah'] ?? 0 }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Total Dosen</td>
+                        <td class="py-2">: {{ $statistik['total_dosen'] ?? 0 }}</td>
+                    </tr>
+                </table>
             </div>
         </div>
         
@@ -79,7 +75,9 @@
                             <td class="px-4 py-2">{{ $mhs->angkatan }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="3" class="px-4 py-2 text-center">Tidak ada data</td></tr>
+                        <tr>
+                            <td colspan="3" class="px-4 py-2 text-center">Tidak ada data</td>
+                        </tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -106,7 +104,9 @@
                             <td class="px-4 py-2">{{ $mk->sks }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="3" class="px-4 py-2 text-center">Tidak ada data</td></tr>
+                        <tr>
+                            <td colspan="3" class="px-4 py-2 text-center">Tidak ada data</td>
+                        </tr>
                         @endforelse
                     </tbody>
                 </table>

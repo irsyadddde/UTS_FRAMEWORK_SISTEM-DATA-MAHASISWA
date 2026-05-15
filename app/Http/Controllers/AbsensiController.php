@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AbsensiController extends Controller
 {
@@ -110,32 +111,59 @@ class AbsensiController extends Controller
     {
         $jadwal = DB::table('jadwals')
             ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
+            ->join('dosens', 'jadwals.dosen_id', '=', 'dosens.id')
             ->where('jadwals.id', $jadwal_id)
-            ->select('jadwals.*', 'matakuliahs.nama_mk')
+            ->select('jadwals.*', 'matakuliahs.nama_mk', 'dosens.nama_dosen')
             ->first();
 
         if (!$jadwal) {
             abort(404, 'Jadwal tidak ditemukan');
         }
 
-        return view('absensi.qr-code', compact('jadwal'));
+        // Generate token untuk QR Code
+        $token = base64_encode(json_encode([
+            'jadwal_id' => $jadwal_id,
+            'expires' => now()->addMinutes(15)->timestamp
+        ]));
+
+        // Generate QR Code
+        $qrCode = QrCode::size(250)
+            ->backgroundColor(255, 255, 255)
+            ->generate(url('/absensi-verify?token=' . $token));
+
+        return view('absensi.qr-code', compact('qrCode', 'jadwal'));
     }
 
     public function verifyQR(Request $request)
     {
-        $jadwal_id = $request->jadwal_id;
+        $token = $request->token;
+        
+        try {
+            $data = json_decode(base64_decode($token), true);
+            
+            // Check expiration
+            if ($data['expires'] < now()->timestamp) {
+                return view('absensi.verify-result', ['success' => false, 'message' => 'QR Code sudah kadaluarsa!']);
+            }
+            
+            $jadwal_id = $data['jadwal_id'];
+            
+            $jadwal = DB::table('jadwals')
+                ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
+                ->join('dosens', 'jadwals.dosen_id', '=', 'dosens.id')
+                ->where('jadwals.id', $jadwal_id)
+                ->select('jadwals.*', 'matakuliahs.nama_mk', 'dosens.nama_dosen')
+                ->first();
 
-        $jadwal = DB::table('jadwals')
-            ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
-            ->where('jadwals.id', $jadwal_id)
-            ->select('jadwals.*', 'matakuliahs.nama_mk')
-            ->first();
+            if (!$jadwal) {
+                return view('absensi.verify-result', ['success' => false, 'message' => 'Jadwal tidak ditemukan!']);
+            }
 
-        if (!$jadwal) {
-            return response()->json(['success' => false, 'message' => 'Jadwal tidak ditemukan!']);
+            return view('absensi.verify-form', compact('jadwal', 'token'));
+            
+        } catch (\Exception $e) {
+            return view('absensi.verify-result', ['success' => false, 'message' => 'QR Code tidak valid!']);
         }
-
-        return view('absensi.verify-form', compact('jadwal'));
     }
 
     public function processQR(Request $request)
@@ -284,13 +312,22 @@ class AbsensiController extends Controller
 
     public function edit($id)
     {
-        $absensi = DB::table('absensis')->where('id', $id)->first();
+        $absensi = DB::table('absensis')
+            ->join('mahasiswas', 'absensis.mahasiswa_id', '=', 'mahasiswas.id')
+            ->join('jadwals', 'absensis.jadwal_id', '=', 'jadwals.id')
+            ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
+            ->where('absensis.id', $id)
+            ->select('absensis.*', 'mahasiswas.nim', 'mahasiswas.nama_mahasiswa', 'matakuliahs.nama_mk')
+            ->first();
+            
         if (!$absensi) {
             abort(404);
         }
+        
         $jadwals = DB::table('jadwals')
             ->join('matakuliahs', 'jadwals.matakuliah_id', '=', 'matakuliahs.id')
-            ->select('jadwals.*', 'matakuliahs.nama_mk')
+            ->join('dosens', 'jadwals.dosen_id', '=', 'dosens.id')
+            ->select('jadwals.*', 'matakuliahs.nama_mk', 'dosens.nama_dosen')
             ->get();
 
         $mahasiswas = DB::table('mahasiswas')->get();

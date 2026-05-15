@@ -17,24 +17,48 @@
     </div>
     
     <div class="p-6">
-        <div class="grid md:grid-cols-2 gap-6">
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
             <div class="bg-gray-50 p-4 rounded-lg">
                 <h3 class="font-semibold text-gray-700 mb-3">Informasi Pribadi</h3>
                 <table class="w-full">
-                    <tr><td class="py-2 text-gray-600 w-32">NIM</td><td>: {{ $mahasiswa->nim }}</td></tr>
-                    <tr><td class="py-2 text-gray-600">Nama Lengkap</td><td>: {{ $mahasiswa->nama_mahasiswa }}</td></tr>
-                    <tr><td class="py-2 text-gray-600">Jurusan</td><td>: {{ $mahasiswa->nama_jurusan }}</td></tr>
-                    <tr><td class="py-2 text-gray-600">Angkatan</td><td>: {{ $mahasiswa->angkatan }}</td></tr>
-                    <tr><td class="py-2 text-gray-600">Email</td><td>: {{ $mahasiswa->email }}</td></tr>
-                    <tr><td class="py-2 text-gray-600">No HP</td><td>: {{ $mahasiswa->no_hp ?? '-' }}</td></tr>
+                    <tr>
+                        <td class="py-2 text-gray-600 w-32">NIM</td>
+                        <td class="py-2">: {{ $mahasiswa->nim }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Nama Lengkap</td>
+                        <td class="py-2">: {{ $mahasiswa->nama_mahasiswa }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Jurusan</td>
+                        <td class="py-2">: {{ $mahasiswa->nama_jurusan }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Angkatan</td>
+                        <td class="py-2">: {{ $mahasiswa->angkatan }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Email</td>
+                        <td class="py-2">: {{ $mahasiswa->email }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">No HP</td>
+                        <td class="py-2">: {{ $mahasiswa->no_hp ?? '-' }}</td>
+                    </tr>
                 </table>
             </div>
             
             <div class="bg-gray-50 p-4 rounded-lg">
                 <h3 class="font-semibold text-gray-700 mb-3">Statistik Akademik</h3>
                 <table class="w-full">
-                    <tr><td class="py-2 text-gray-600 w-32">Total SKS</td><td>: {{ $krs->sum('sks') ?? 0 }} SKS</td></tr>
-                    <tr><td class="py-2 text-gray-600">Jumlah Mata Kuliah</td><td>: {{ $krs->count() }}</td></tr>
+                    <tr>
+                        <td class="py-2 text-gray-600 w-32">Total SKS</td>
+                        <td class="py-2">: {{ $krs->sum('sks') ?? 0 }} SKS</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 text-gray-600">Jumlah Mata Kuliah</td>
+                        <td class="py-2">: {{ $krs->count() }}</td>
+                    </tr>
                 </table>
             </div>
         </div>
@@ -56,7 +80,7 @@
                             <td class="px-4 py-2">{{ $item->nama_mk }}</td>
                             <td class="px-4 py-2">{{ $item->sks }}</td>
                             <td class="px-4 py-2">
-                                <span class="px-2 py-1 rounded text-xs
+                                <span class="px-2 py-1 rounded text-xs 
                                     @if($item->status == 'approved') bg-green-100 text-green-700
                                     @elseif($item->status == 'rejected') bg-red-100 text-red-700
                                     @else bg-yellow-100 text-yellow-700 @endif">
@@ -65,7 +89,9 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="3" class="px-4 py-2 text-center">Belum ada KRS</td></tr>
+                        <tr>
+                            <td colspan="3" class="px-4 py-2 text-center">Belum ada KRS</td>
+                        </tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -6,13 +6,12 @@
 <div class="bg-white rounded-lg shadow">
     <div class="p-6 border-b flex justify-between items-center">
         <h1 class="text-2xl font-bold">Data Jurusan</h1>
-        <a href="{{ route('jurusan.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+        <a href="{{ route('jurusan.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
             <i class="fas fa-plus mr-2"></i>Tambah Jurusan
         </a>
     </div>
     
     <div class="p-6">
-        <!-- Search -->
         <form method="GET" class="mb-4 flex gap-2">
             <input type="text" name="search" placeholder="Cari kode atau nama jurusan..." 
                    class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
@@ -22,7 +21,6 @@
             </button>
         </form>
         
-        <!-- Table -->
         <div class="overflow-x-auto">
             <table class="min-w-full">
                 <thead class="bg-gray-50">
@@ -63,7 +61,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">Tidak ada data</td>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">Tidak ada数据</td>
                     </tr>
                     @endforelse
                 </tbody>

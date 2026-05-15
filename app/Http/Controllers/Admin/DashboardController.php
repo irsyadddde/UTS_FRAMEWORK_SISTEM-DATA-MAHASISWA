@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -9,10 +10,17 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // Cek apakah user sudah login dan role-nya admin
+        if (!session()->has('user_id') || session('user_role') != 'admin') {
+            return redirect('/login')->with('error', 'Akses ditolak!');
+        }
+        
         $totalMahasiswa = DB::table('mahasiswas')->count();
         $totalDosen = DB::table('dosens')->count();
         $totalMatakuliah = DB::table('matakuliahs')->count();
         $totalJadwal = DB::table('jadwals')->count();
+        $totalKRS = DB::table('k_r_s')->count();
+        $totalAbsensi = DB::table('absensis')->count();
         
         $mahasiswaPerJurusan = DB::table('jurusans')
             ->leftJoin('mahasiswas', 'jurusans.id', '=', 'mahasiswas.jurusan_id')
@@ -20,28 +28,6 @@ class DashboardController extends Controller
             ->groupBy('jurusans.id', 'jurusans.nama_jurusan')
             ->get();
         
-        // Data untuk grafik aktivitas per minggu
-        $aktivitasPerMinggu = DB::table('absensis')
-            ->select(DB::raw('WEEK(tanggal) as minggu'), DB::raw('count(*) as total'))
-            ->whereYear('tanggal', date('Y'))
-            ->groupBy(DB::raw('WEEK(tanggal)'))
-            ->orderBy(DB::raw('WEEK(tanggal)'), 'desc')
-            ->limit(6)
-            ->get();
-        
-        // Jika tidak ada data, buat data dummy
-        if ($aktivitasPerMinggu->isEmpty()) {
-            $aktivitasPerMinggu = collect([
-                (object)['minggu' => '14', 'total' => 42],
-                (object)['minggu' => '15', 'total' => 126],
-                (object)['minggu' => '16', 'total' => 140],
-                (object)['minggu' => '17', 'total' => 117],
-                (object)['minggu' => '18', 'total' => 116],
-                (object)['minggu' => '19', 'total' => 111],
-            ]);
-        }
-        
-        // Data untuk aktivitas terbaru
         $aktivitasTerbaru = DB::table('absensis')
             ->join('mahasiswas', 'absensis.mahasiswa_id', '=', 'mahasiswas.id')
             ->join('jadwals', 'absensis.jadwal_id', '=', 'jadwals.id')
@@ -51,9 +37,9 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
         
-        return view('dashboard', compact(
+        return view('admin.dashboard', compact(
             'totalMahasiswa', 'totalDosen', 'totalMatakuliah', 'totalJadwal',
-            'mahasiswaPerJurusan', 'aktivitasPerMinggu', 'aktivitasTerbaru'
+            'totalKRS', 'totalAbsensi', 'mahasiswaPerJurusan', 'aktivitasTerbaru'
         ));
     }
 }

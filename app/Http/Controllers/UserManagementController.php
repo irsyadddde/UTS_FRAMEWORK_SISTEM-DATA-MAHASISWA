@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 
 class UserManagementController extends Controller
 {
+    // Menampilkan daftar user
     public function index(Request $request)
     {
         $query = DB::table('users')
@@ -22,7 +23,7 @@ class UserManagementController extends Controller
                 'dosens.nama_dosen as dosen_name'
             );
         
-        if ($request->has('search')) {
+        if ($request->has('search') && $request->search != '') {
             $query->where('users.name', 'like', '%' . $request->search . '%')
                   ->orWhere('users.email', 'like', '%' . $request->search . '%');
         }
@@ -36,6 +37,7 @@ class UserManagementController extends Controller
         return view('user-management.index', compact('users'));
     }
 
+    // Form tambah user
     public function create()
     {
         $mahasiswas = DB::table('mahasiswas')
@@ -53,6 +55,7 @@ class UserManagementController extends Controller
         return view('user-management.create', compact('mahasiswas', 'dosens'));
     }
 
+    // Menyimpan user baru
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -88,6 +91,24 @@ class UserManagementController extends Controller
         return redirect()->route('user-management.index')->with('success', 'User berhasil ditambahkan');
     }
 
+    // Menampilkan detail user
+    public function show($id)
+    {
+        $user = DB::table('users')
+            ->leftJoin('mahasiswas', 'users.mahasiswa_id', '=', 'mahasiswas.id')
+            ->leftJoin('dosens', 'users.dosen_id', '=', 'dosens.id')
+            ->where('users.id', $id)
+            ->select('users.*', 'mahasiswas.nama_mahasiswa', 'dosens.nama_dosen')
+            ->first();
+            
+        if (!$user) {
+            abort(404);
+        }
+        
+        return view('user-management.show', compact('user'));
+    }
+
+    // Form edit user
     public function edit($id)
     {
         $user = DB::table('users')->where('id', $id)->first();
@@ -101,6 +122,7 @@ class UserManagementController extends Controller
         return view('user-management.edit', compact('user', 'mahasiswas', 'dosens'));
     }
 
+    // Update user
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
@@ -142,10 +164,9 @@ class UserManagementController extends Controller
         return redirect()->route('user-management.index')->with('success', 'User berhasil diupdate');
     }
 
+    // Hapus user
     public function destroy($id)
     {
-        $user = DB::table('users')->where('id', $id)->first();
-        
         // Prevent deleting own account
         if (session('user_id') == $id) {
             return redirect()->back()->with('error', 'Tidak dapat menghapus akun sendiri!');
@@ -155,6 +176,7 @@ class UserManagementController extends Controller
         return redirect()->route('user-management.index')->with('success', 'User berhasil dihapus');
     }
     
+    // Reset password
     public function resetPassword($id)
     {
         DB::table('users')->where('id', $id)->update([
@@ -165,8 +187,13 @@ class UserManagementController extends Controller
         return redirect()->back()->with('success', 'Password berhasil direset menjadi: password123');
     }
     
+    // Profile user yang login
     public function profile()
     {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+        
         $user = DB::table('users')->where('id', session('user_id'))->first();
         
         if ($user->role == 'mahasiswa') {
@@ -180,10 +207,14 @@ class UserManagementController extends Controller
         return view('user-management.profile', compact('user', 'profile'));
     }
     
+    // Update profile
     public function updateProfile(Request $request)
     {
+        if (!session()->has('user_id')) {
+            return redirect('/login');
+        }
+        
         $user_id = session('user_id');
-        $user = DB::table('users')->where('id', $user_id)->first();
         
         $validator = Validator::make($request->all(), [
             'name' => 'required|max:100',
@@ -200,6 +231,9 @@ class UserManagementController extends Controller
             'updated_at' => now(),
         ]);
         
+        // Update session name
+        session(['user_name' => $request->name]);
+        
         if ($request->filled('password')) {
             DB::table('users')->where('id', $user_id)->update([
                 'password' => Hash::make($request->password),
@@ -209,6 +243,7 @@ class UserManagementController extends Controller
         return redirect()->back()->with('success', 'Profile berhasil diupdate');
     }
     
+    // Proses login
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -217,27 +252,40 @@ class UserManagementController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            return redirect('/login')->withErrors($validator)->withInput();
         }
         
         $user = DB::table('users')->where('email', $request->email)->first();
         
         if ($user && Hash::check($request->password, $user->password)) {
-            session(['user_id' => $user->id, 'user_role' => $user->role, 'user_name' => $user->name]);
-            return redirect()->route('dashboard')->with('success', 'Login berhasil!');
+            session()->flush();
+            session()->regenerate();
+            
+            session([
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'user_name' => $user->name
+            ]);
+            
+            return redirect('/')->with('success', 'Login berhasil! Selamat datang, ' . $user->name . '!');
         }
         
-        return redirect()->back()->with('error', 'Email atau password salah!');
+        return redirect('/login')->with('error', 'Email atau password salah!');
     }
     
+    // Form login
+    public function loginForm()
+    {
+        if (session()->has('user_id')) {
+            return redirect('/');
+        }
+        return view('user-management.login');
+    }
+    
+    // Logout
     public function logout()
     {
         session()->flush();
-        return redirect()->route('login')->with('success', 'Logout berhasil!');
-    }
-    
-    public function loginForm()
-    {
-        return view('user-management.login');
+        return redirect('/login')->with('success', 'Logout berhasil!');
     }
 }

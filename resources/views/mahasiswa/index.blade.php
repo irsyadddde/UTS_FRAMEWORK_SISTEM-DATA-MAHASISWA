@@ -12,6 +12,7 @@
     </div>
     
     <div class="p-6">
+        <!-- Search -->
         <form method="GET" class="mb-4 flex gap-2">
             <input type="text" name="search" placeholder="Cari nama atau NIM..." 
                    class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
@@ -21,6 +22,7 @@
             </button>
         </form>
         
+        <!-- Table -->
         <div class="overflow-x-auto">
             <table class="min-w-full">
                 <thead class="bg-gray-50">
